@@ -1,37 +1,28 @@
 require 'spec_helper'
 
 describe Bosh::Deployer::Config do
-  before { @dir = Dir.mktmpdir('bdc_spec') }
+  let(:configuration_fixture) do
+    Psych.load_file(spec_asset('test-bootstrap-config.yml')).merge('dir' => @dir)
+  end
+  let(:configuration_hash) { configuration_fixture }
+
+  before do
+    @dir = Dir.mktmpdir('bdc_spec')
+    described_class.configure(configuration_hash)
+  end
+
   after { FileUtils.remove_entry_secure @dir }
 
   it 'should default agent properties' do
-    config = Psych.load_file(spec_asset('test-bootstrap-config.yml'))
-    config['dir'] = @dir
-    Bosh::Deployer::Config.configure(config)
 
-    properties = Bosh::Deployer::Config.cloud_options['properties']
+    properties = described_class.cloud_options['properties']
     properties['agent'].should be_kind_of(Hash)
     properties['agent']['mbus'].start_with?('https://').should be(true)
     properties['agent']['blobstore'].should be_kind_of(Hash)
   end
 
-  it 'should map network properties' do
-    config = Psych.load_file(spec_asset('test-bootstrap-config.yml'))
-    config['dir'] = @dir
-    Bosh::Deployer::Config.configure(config)
-
-    networks = Bosh::Deployer::Config.networks
-    networks.should be_kind_of(Hash)
-
-    net = networks['bosh']
-    net.should be_kind_of(Hash)
-    %w(cloud_properties netmask gateway ip dns default).each do |key|
-      net[key].should_not be_nil
-    end
-  end
-
   it 'should default vm env properties' do
-    env = Bosh::Deployer::Config.env
+    env = described_class.env
     env.should be_kind_of(Hash)
     env.should have_key('bosh')
     env['bosh'].should be_kind_of(Hash)
@@ -39,8 +30,7 @@ describe Bosh::Deployer::Config do
   end
 
   it 'should contain default vm resource properties' do
-    Bosh::Deployer::Config.configure('dir' => @dir, 'cloud' => { 'plugin' => 'vsphere' })
-    resources = Bosh::Deployer::Config.resources
+    resources = described_class.resources
     resources.should be_kind_of(Hash)
 
     resources['persistent_disk'].should be_kind_of(Integer)
@@ -55,10 +45,56 @@ describe Bosh::Deployer::Config do
   end
 
   it 'should configure agent using mbus property' do
-    config = Psych.load_file(spec_asset('test-bootstrap-config.yml'))
-    config['dir'] = @dir
-    Bosh::Deployer::Config.configure(config)
-    agent = Bosh::Deployer::Config.agent
+    agent = described_class.agent
     agent.should be_kind_of(Bosh::Agent::HTTPClient)
+  end
+
+  describe '.networks' do
+    context 'when additional networks are specified' do
+      let(:configuration_hash) do
+        configuration_fixture.merge('deployment_network' => 'deployment network')
+      end
+
+      it 'includes the default bosh network and the deployment network' do
+        networks = described_class.networks
+        expect(networks['bosh']['default']).to match_array(%w(dns gateway))
+        %w(cloud_properties netmask gateway ip dns type).each do |key|
+          networks['bosh'][key].should eq(configuration_hash['network'][key])
+        end
+
+        expect(networks).to include('deployment' => 'deployment network')
+      end
+    end
+
+    context 'when additional networks are not specified' do
+      it 'should map network properties to the bosh network' do
+        networks = described_class.networks
+        net = networks['bosh']
+        net.should be_kind_of(Hash)
+        expect(net['default']).to match_array(%w(dns gateway))
+        %w(cloud_properties netmask gateway ip dns type).each do |key|
+          net[key].should eq(configuration_hash['network'][key])
+        end
+      end
+    end
+
+    context 'when a vip is specified' do
+      let(:configuration_hash) do
+        configuration_fixture.tap do |h|
+          h['network']['vip'] = '192.168.1.1'
+        end
+      end
+
+      it 'includes the default bosh network and a vip network' do
+        networks = described_class.networks
+        expect(networks['bosh']['default']).to match_array(%w(dns gateway))
+        %w(cloud_properties netmask gateway ip dns type).each do |key|
+          networks['bosh'][key].should eq(configuration_hash['network'][key])
+        end
+
+        vip_hash = { 'vip' => { 'ip' => '192.168.1.1', 'type' => 'vip', 'cloud_properties' => {} } }
+        expect(networks).to include(vip_hash)
+      end
+    end
   end
 end

@@ -8,13 +8,13 @@ module Bosh::Deployer
       plugin = config['cloud']['plugin']
 
       config = deep_merge(load_defaults(plugin), config)
-
       @base_dir = config['dir']
       FileUtils.mkdir_p(@base_dir)
 
       @name = config['name']
       @cloud_options = config['cloud']
       @net_conf = config['network']
+      @deployment_network = config['deployment_network']
       @bosh_ip = @net_conf['ip']
       @resources = config['resources']
       @env = config['env']
@@ -54,7 +54,6 @@ module Bosh::Deployer
 
       @disk_model = nil
       @cloud = nil
-      @networks = nil
     end
     # rubocop:enable MethodLength
 
@@ -82,10 +81,9 @@ module Bosh::Deployer
       @cloud_options['properties']['agent']['mbus']
     end
 
+    # rubocop:disable MethodLength
     def networks
-      return @networks if @networks
-
-      @networks = {
+      networks = {
         'bosh' => {
           'cloud_properties' => @net_conf['cloud_properties'],
           'netmask' => @net_conf['netmask'],
@@ -96,15 +94,23 @@ module Bosh::Deployer
           'default' => %w(dns gateway)
         }
       }
+      if @deployment_network
+        networks.merge!('deployment' => @deployment_network)
+      end
       if @net_conf['vip']
-        @networks['vip'] = {
+        networks['vip'] = {
           'ip' => @net_conf['vip'],
           'type' => 'vip',
           'cloud_properties' => {}
         }
       end
+      networks
+    end
+    # rubocop:enable MethodLength
 
-      @networks
+    def service_ip
+      service_network = networks.fetch('deployment', networks.fetch('bosh'))
+      service_network.fetch('ip')
     end
 
     def task_checkpoint

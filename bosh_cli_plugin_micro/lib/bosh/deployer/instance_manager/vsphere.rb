@@ -46,7 +46,7 @@ module Bosh::Deployer
       end
 
       def service_ip
-        instance_manager.bosh_ip
+        instance_manager.service_ip
       end
 
       # @return [Integer] size in MiB

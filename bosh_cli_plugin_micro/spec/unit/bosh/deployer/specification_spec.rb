@@ -15,13 +15,18 @@ describe Bosh::Deployer::Specification do
   end
 
   it 'should update director address' do
-    spec.update('1.1.1.1', '2.2.2.2')
+    spec.update('2.2.2.2')
     expect(spec.properties['director']['address']).to eq '2.2.2.2'
   end
 
   it 'should update blobstore address' do
-    spec.update('1.1.1.1', '2.2.2.2')
-    expect(spec.properties['agent']['blobstore']['address']).to eq '1.1.1.1'
+    spec.update('2.2.2.2')
+    expect(spec.properties['agent']['blobstore']['address']).to eq '2.2.2.2'
+  end
+
+  it 'should update nats address' do
+    spec.update('2.2.2.2')
+    expect(spec.properties['agent']['nats']['address']).to eq '2.2.2.2'
   end
 
   describe 'agent override' do
@@ -29,12 +34,12 @@ describe Bosh::Deployer::Specification do
     let(:spec_properties) { { 'ntp' => %w[1.2.3.4] } }
 
     it 'should update blobstore address' do
-      spec.update('1.1.1.1', '2.2.2.2')
+      spec.update('2.2.2.2')
       expect(spec.properties['agent']['blobstore']['address']).to eq '3.3.3.3'
     end
 
     it 'should update ntp server list' do
-      spec.update('1.1.1.1', '2.2.2.2')
+      spec.update('2.2.2.2')
       expect(spec.properties['ntp']).to eq %w[1.2.3.4]
     end
   end
@@ -51,7 +56,7 @@ describe Bosh::Deployer::Specification do
     end
 
     it 'should update the apply spec if enabled in micro_bosh.yml apply_spec' do
-      spec.update('1.1.1.1', '2.2.2.2')
+      spec.update('2.2.2.2')
       expect(spec.properties['compiled_package_cache']).to eq(
         spec_properties['compiled_package_cache'])
     end
@@ -70,7 +75,7 @@ describe Bosh::Deployer::Specification do
     end
 
     it 'updates the apply spec with ssl key and cert' do
-      spec.update('1.1.1.1', '2.2.2.2')
+      spec.update('2.2.2.2')
       expect(spec.properties['director']['ssl']).to eq(spec_properties['director']['ssl'])
       expect(spec.properties['director']['ssl']).to_not be_nil
     end

@@ -21,10 +21,9 @@ module Bosh::Deployer
     end
 
     # Update the spec with the IP of the micro bosh instance.
-    # @param [String] bosh_ip IP address of the micro bosh VM
     # @param [String] service_ip private IP of the micro bosh VM on AWS/OS,
     #   or the same as the bosh_ip if vSphere/vCloud
-    def update(bosh_ip, service_ip)
+    def update(service_ip)
       # set the director name to what is specified in the micro_bosh.yml
       if Config.name
         @properties['director'] = {} unless @properties['director']
@@ -35,7 +34,7 @@ module Bosh::Deployer
       # as when the micro bosh instance is re-created during a deployment,
       # it might get a new private IP
       %w{blobstore nats}.each do |service|
-        update_agent_service_address(service, bosh_ip)
+        update_agent_service_address(service, service_ip)
       end
 
       services = %w{director redis blobstore nats registry dns}

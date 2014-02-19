@@ -74,6 +74,7 @@ module Bosh::Deployer
       :logger,
       :bosh_ip,
       :bosh_ip=,
+      :service_ip
     )
 
     def check_dependencies
@@ -384,7 +385,7 @@ module Bosh::Deployer
         # first update spec with infrastructure specific stuff
         infrastructure.update_spec(spec)
         # then update spec with generic changes
-        spec = spec.update(bosh_ip, infrastructure.service_ip)
+        spec = spec.update(infrastructure.service_ip)
 
         microbosh_job_instance = MicroboshJobInstance.new(bosh_ip, Config.agent_url, logger)
         spec = microbosh_job_instance.render_templates(spec)
