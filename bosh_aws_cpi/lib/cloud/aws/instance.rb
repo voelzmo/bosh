@@ -93,7 +93,7 @@ module Bosh::AwsCloud
       @elb.load_balancers.each do |load_balancer|
         begin
           load_balancer.instances.deregister(@aws_instance)
-        rescue AWS::ELB::Errors::InvalidInstance
+        rescue AWS::ELB::Errors::InvalidInstance, AWS::Errors::Base
           # ignore this, as it just means it wasn't registered
         end
       end
